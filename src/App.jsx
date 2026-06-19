@@ -287,8 +287,9 @@ async function doExport(state) {
   Object.entries(state.wallVals).forEach(([k, q]) => {
     if (nv(q) > 0 && wallLabels[k]) itm(wallLabels[k][0], wallLabels[k][1], nv(q), P[k], 'Ref Spec "AWN-ODF-OUTDOOR-WAL-FTTR-02"');
   });
-  if (state.groundSel === "ODF 72F Ground") {
-    const q = nv(state.groundQtys["ODF 72F Ground"]);
+  const groundQ72 = nv(state.groundVals["ODF 72F Ground"]);
+  if (state.groundVals["ODF 72F Ground"] !== undefined && groundQ72 > 0) {
+    const q = groundQ72;
     if (q > 0) {
       itm("ODF 72F Outdoor On Ground without Splitter Modular (Max. 10 Slot)", "EA", q, P["ODF 72F Ground"], 'Ref Spec "AWN-ODF-72F-OUTDOOR-GND-FTTX-01"');
       itm("CONC BASE FOUNDATION WITH GROUND WIRE FOR ODF 72F OUTDOOR ON GROUND TYPE", "EA", q, P["CONC BASE 72F"]);
@@ -393,9 +394,8 @@ export default function App() {
   const [homes, setHomes] = useState("0");
 
   // Sec 1
-  const [wallVals, setWallVals] = useState({});  // multi-select checkbox now
-  const [groundSel, setGroundSel] = useState(null);
-  const [groundQtys, setGroundQtys] = useState({});
+  const [wallVals, setWallVals] = useState({});
+  const [groundVals, setGroundVals] = useState({});
   const [cab600qtys, setCab600qtys] = useState({ "ODF 600F Cabinet": "0", "ODF 120F 4U Rack": "0", "ODF 24F 1U Rack": "0" });
   const [poleSels, setPoleSels] = useState({});
   const [splSels, setSplSels] = useState({});
@@ -438,7 +438,7 @@ export default function App() {
 
   const sub = useMemo(() => {
     const s1_wall = Object.entries(wallVals).reduce((s, [k, q]) => s + nv(q) * (P[k] || 0), 0);
-    const groundQ = groundSel === "ODF 72F Ground" ? nv(groundQtys["ODF 72F Ground"]) : 0;
+    const groundQ = nv(groundVals["ODF 72F Ground"]);
     const s1_ground = groundQ * (P["ODF 72F Ground"] + P["CONC BASE 72F"]);
     const c6q = nv(cab600qtys["ODF 600F Cabinet"]);
     const s1_600 = c6q * P["ODF 600F Cabinet"]
@@ -474,7 +474,7 @@ export default function App() {
     const costPerSub = homesN > 0 ? totalVillage / homesN : 0;
 
     return { s1, s2, s3, s4, s5, s6, s7, mainSPT, oltCost, odnCost, oltOdn, lmPerHome, totalVillage, costPerSub, totalPoles, c6q, groundQ };
-  }, [wallVals, groundSel, groundQtys, cab600qtys, poleSels, splSels,
+  }, [wallVals, groundVals, cab600qtys, poleSels, splSels,
       fiberVals, bjSels, termSels, civilVals, lmSels,
       tbOutlet1c, spliceHouse, spliceDrop, breakSewer,
       survey, igis, testReport, accPerHome, mgmtPerHome,
@@ -482,7 +482,7 @@ export default function App() {
 
   const exportState = {
     villageName, homes, oltPON, odnVal, onuPerHome, onuBoxPerHome, pipeNotes, sub,
-    wallVals, groundSel, groundQtys, cab600qtys, poleSels, splSels,
+    wallVals, groundVals, cab600qtys, poleSels, splSels,
     fiberVals, bjSels, termSels, civilVals, lmSels,
     tbOutlet1c, spliceHouse, spliceDrop, breakSewer,
     survey, igis, testReport, accPerHome, mgmtPerHome,
@@ -612,13 +612,9 @@ export default function App() {
 
           <SubLabel>On Ground ODF</SubLabel>
           <CheckGroup items={[{ key: "ODF 72F Ground", label: "ODF 72F Outdoor On Ground (Max 10 Slot)" }]}
-            values={groundSel === "ODF 72F Ground" ? { "ODF 72F Ground": groundQtys["ODF 72F Ground"] || "0" } : {}}
-            setValues={v => {
-              if (v["ODF 72F Ground"] !== undefined) { setGroundSel("ODF 72F Ground"); setGroundQtys({ "ODF 72F Ground": v["ODF 72F Ground"] }); }
-              else { setGroundSel(null); }
-            }} />
-          {groundSel === "ODF 72F Ground" && sub.groundQ > 0 &&
-            <AutoNote>CONC BASE รวมอัตโนมัติ {sub.groundQ} ชุด = ฿{fmt(sub.groundQ * P["CONC BASE 72F"])}</AutoNote>}
+            values={groundVals} setValues={setGroundVals} />
+          {groundVals["ODF 72F Ground"] !== undefined && nv(groundVals["ODF 72F Ground"]) > 0 &&
+            <AutoNote>CONC BASE รวมอัตโนมัติ {nv(groundVals["ODF 72F Ground"])} ชุด = ฿{fmt(nv(groundVals["ODF 72F Ground"]) * P["CONC BASE 72F"])}</AutoNote>}
 
           <SubLabel>ODF 600F Outdoor Cabinet for ISP</SubLabel>
           {[

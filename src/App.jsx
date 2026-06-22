@@ -218,19 +218,20 @@ function QtyRow({ label, unit, priceKey, value, onChange }) {
 }
 
 // Per-home row with price override input
-function PerHomeRow({ label, priceKey, homes, override, setOverride }) {
-  const price = nv(override) || (P[priceKey] || 0);
-  const total = nv(homes) * price;
+// qty auto = จำนวนหลัง, แก้ได้ด้วย stepper, ราคาคงที่จาก P[]
+function PerHomeRow({ label, priceKey, homesN, qtyOverride, setQtyOverride }) {
+  const price = P[priceKey] || 0;
+  const qty = qtyOverride !== "" ? nv(qtyOverride) : homesN;
+  const total = qty * price;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 7, border: `1px solid #b3dfd4`, background: "#f0fbf6" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", borderRadius: 7, border: "1px solid #b3dfd4", background: "#f0fbf6" }}>
       <span style={{ fontSize: 12, flex: 1, color: C.text, fontFamily: FONT }}>{label}</span>
-      <span style={{ fontSize: 11, color: C.gray }}>฿</span>
-      <input type="number" min="0" value={override} onChange={e => setOverride(e.target.value)}
-        style={{ width: 72, height: 32, padding: "0 6px", borderRadius: 6, border: `1.5px solid ${C.accent}`, fontSize: 13, fontFamily: "monospace", textAlign: "center", color: C.text, outline: "none" }} />
-      <span style={{ fontSize: 11, color: C.gray, whiteSpace: "nowrap" }}>/หลัง×{nv(homes) || 0}</span>
+      <span style={{ fontSize: 11, color: C.gray, whiteSpace: "nowrap" }}>จำนวน</span>
+      <Stepper value={String(qty)} onChange={v => setQtyOverride(v)} />
+      <span style={{ fontSize: 11, color: C.gray, whiteSpace: "nowrap" }}>× ฿{fmt(price)}</span>
       {total > 0
-        ? <span style={{ fontFamily: "monospace", fontSize: 12, fontWeight: 700, color: C.primary, minWidth: 64, textAlign: "right" }}>฿{fmt(total)}</span>
-        : <span style={{ minWidth: 64 }} />}
+        ? <span style={{ fontFamily: "monospace", fontSize: 12, fontWeight: 700, color: C.primary, minWidth: 68, textAlign: "right" }}>฿{fmt(total)}</span>
+        : <span style={{ minWidth: 68 }} />}
     </div>
   );
 }
@@ -241,6 +242,84 @@ function AutoNote({ children }) {
       ✓ {children}
     </div>
   );
+}
+
+// ── JSON EXPORT (สำหรับ Python fill_template.py) ──
+function doJsonExport(state) {
+  const nv = (v) => parseFloat(v) || 0;
+  const homesN = nv(state.homes);
+
+  // Map app state → row numbers ใน template
+  const rowMap = {};
+
+  // Wall Mount
+  const wallRowMap = { "ODF 32F Wall": 5, "ODF 72F Wall": 6, "ODF 144F Wall": 7, "ODF 288F Wall": 8 };
+  Object.entries(state.wallVals).forEach(([k, q]) => { if (nv(q) > 0 && wallRowMap[k]) rowMap[wallRowMap[k]] = nv(q); });
+
+  // On Ground
+  const gq = nv(state.groundVals["ODF 72F Ground"]);
+  if (gq > 0) { rowMap[9] = gq; rowMap[10] = gq; }
+
+  // 600F
+  const c6q = nv(state.cab600qtys["ODF 600F Cabinet"]);
+  if (c6q > 0) {
+    rowMap[11] = c6q;
+    const r120 = nv(state.cab600qtys["ODF 120F 4U Rack"]); if (r120 > 0) rowMap[12] = r120;
+    const r24 = nv(state.cab600qtys["ODF 24F 1U Rack"]); if (r24 > 0) rowMap[13] = r24;
+    rowMap[14] = c6q; rowMap[15] = c6q;
+  }
+
+  // Splitter
+  const splRow = { "Splitter 1:4": 16, "Splitter 1:8": 17, "Splitter 1:16": 18, "Panel 8S": 19 };
+  Object.entries(state.splSels).forEach(([k, q]) => { if (nv(q) > 0 && splRow[k]) rowMap[splRow[k]] = nv(q); });
+
+  // Pole
+  const poleRow = { "Pole 1:8 L1": 20, "Pole 1:8 L2": 21, "Pole 1:16 L2": 22 };
+  let totalPoles = 0;
+  Object.entries(state.poleSels).forEach(([k, q]) => { if (nv(q) > 0 && poleRow[k]) { rowMap[poleRow[k]] = nv(q); totalPoles += nv(q); } });
+  if (totalPoles > 0) rowMap[23] = totalPoles;
+
+  // Fiber
+  const fiberRow = { "ADSS 24C": 28, "ADSS 48C": 29, "ADSS 120C": 30, "ADSS-M 12C": 31, "ADSS-D 12C": 32, "ADSS-D 24C": 33, "ADSS-D 48C": 34, "ADSS-D 120C": 35, "Duct 12C": 40, "Duct 24C": 41, "Duct 48C": 42, "Duct 120C": 43 };
+  Object.entries(state.fiberVals).forEach(([k, q]) => { if (nv(q) > 0 && fiberRow[k]) rowMap[fiberRow[k]] = nv(q); });
+
+  // BJ + Splice
+  const bjRow = { "Duct BJ 12C": 46, "Duct BJ 24C": 47, "Duct BJ 48C": 48, "Duct BJ 120C": 49, "Splice 12F": 50, "Splice 24F": 51, "Splice 48F": 52, "Splice 120F": 53 };
+  Object.entries(state.bjSels).forEach(([k, q]) => { if (nv(q) > 0 && bjRow[k]) rowMap[bjRow[k]] = nv(q); });
+
+  // Terminate
+  const termRow = { "Term 1C": 63, "Term 2C": 64, "Term 3C": 65, "Term 4C": 66, "Term 6C": 68, "Term 12C": 74, "Term 24C": 75, "Term 48C": 76, "Term 120C": 77 };
+  Object.entries(state.termSels).forEach(([k, q]) => { if (nv(q) > 0 && termRow[k]) rowMap[termRow[k]] = nv(q); });
+
+  // Civil
+  const civRow = { "A8 Pole": 79, 'Flex RT 1/2"': 80, 'Flex RT 3/4"': 81, 'Flex RT 1"': 82, 'Flex 1/2"': 83, 'Flex 3/4"': 84, 'Flex 1"': 85, 'IMC 1/2"': 86, 'IMC 3/4"': 87, 'IMC 1"': 88, 'uPVC 1/2"': 89, 'uPVC 3/4"': 90, 'uPVC 1"': 91, 'PVC 1/2"': 92, 'PVC 3/4"': 93, 'PVC 1"': 94, 'HDPE 1/2"': 95, 'HDPE 3/4"': 96, 'HDPE 1"': 97, 'HDPE 2"': 98, "Road Cut": 100, "Break PB": 101, "PB 4x4 Galv": 102, "PB 6x6 Galv": 103, "PB 10x10 Galv": 104, "PB 12x12 Galv": 105, "PB 4x4 Plastic": 106, "PB 6x6 Plastic": 107, "PB 10x10 Plastic": 108, "PB 12x12 Plastic": 109, "HH-01 CONC": 110 };
+  Object.entries(state.civilVals).forEach(([k, q]) => { if (nv(q) > 0 && civRow[k]) rowMap[civRow[k]] = nv(q); });
+
+  // Lastmile
+  const lmRow = { "Flat 1C": 112, "Flat 2C": 113, "Round 1C": 114, "Round 2C": 115, "Armoured 1C": 116, "Armoured 2C": 117, "Duct Flat 1C": 118, "Duct Flat 2C": 119 };
+  Object.entries(state.lmSels).forEach(([k, q]) => { if (nv(q) > 0 && lmRow[k]) rowMap[lmRow[k]] = nv(q); });
+
+  const tbQ = state.tbQty !== "" ? nv(state.tbQty) : homesN; if (tbQ > 0) rowMap[120] = tbQ;
+  const spHQ = state.spliceHouseQty !== "" ? nv(state.spliceHouseQty) : homesN; if (spHQ > 0) rowMap[123] = spHQ;
+  if (nv(state.spliceDrop) > 0) rowMap[124] = nv(state.spliceDrop);
+  if (nv(state.breakSewer) > 0) rowMap[125] = nv(state.breakSewer);
+
+  // Management
+  if (nv(state.survey) > 0) rowMap[127] = nv(state.survey);
+  if (nv(state.igis) > 0) rowMap[128] = nv(state.igis);
+  if (nv(state.testReport) > 0) rowMap[129] = nv(state.testReport);
+  const accQ = state.accQty !== "" ? nv(state.accQty) : homesN; if (accQ > 0) rowMap[130] = accQ;
+  const mgmtQ = state.mgmtQty !== "" ? nv(state.mgmtQty) : homesN; if (mgmtQ > 0) rowMap[131] = mgmtQ;
+
+  // ONU row 249
+  if (homesN > 0) rowMap[249] = homesN;
+
+  const output = { village_name: state.villageName || "Unnamed", boq_data: rowMap };
+  const blob = new Blob([JSON.stringify(output, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href = url;
+  a.download = `BOQ_${state.villageName || "village"}.json`;
+  a.click(); URL.revokeObjectURL(url);
 }
 
 // ── EXCEL EXPORT ──
@@ -365,8 +444,8 @@ async function doExport(state) {
     "Duct Flat 1C": ["SM-D Duct Dropwire Flat Type 1C","M"], "Duct Flat 2C": ["SM-D Duct Dropwire Flat Type 2C","M"],
   };
   Object.entries(state.lmSels).forEach(([k, q]) => { if (nv(q) > 0) { const [l, u] = lmMap[k] || [k,"M"]; itm(l, u, nv(q), P[k]); } });
-  if (nv(state.tbOutlet1c) > 0) itm("Terminal Box Outlet 1C with Adapter SC/APC", "EA", nv(state.tbOutlet1c), P["TB Outlet 1C"]);
-  if (nv(state.spliceHouse) > 0) itm("Fusion Splice Terminate @House with SC/APC Pigtail", "Set", nv(state.spliceHouse), P["Splice@House"]);
+  const _tbQ = state.tbQty !== "" ? nv(state.tbQty) : homesN; if (_tbQ > 0) itm("Terminal Box Outlet 1C with Adapter SC/APC", "EA", _tbQ, P["TB Outlet 1C"]);
+  const _spQ = state.spliceHouseQty !== "" ? nv(state.spliceHouseQty) : homesN; if (_spQ > 0) itm("Fusion Splice Terminate @House with SC/APC Pigtail", "Set", _spQ, P["Splice@House"]);
   if (nv(state.spliceDrop) > 0) itm("Splice core fiber drop wire", "Core", nv(state.spliceDrop), P["Splice Drop Wire"]);
   if (nv(state.breakSewer) > 0) itm("Break sewer to Post Box", "Set", nv(state.breakSewer), P["Break Sewer"]);
 
@@ -374,8 +453,8 @@ async function doExport(state) {
   if (nv(state.survey) > 0) itm("Survey & Drawings", "L.S.", nv(state.survey), P["Survey"]);
   if (nv(state.igis) > 0) itm("IGIS", "L.S.", nv(state.igis), P["IGIS"]);
   if (nv(state.testReport) > 0) itm("Test & Document Report", "L.S.", nv(state.testReport), P["Test & Report"]);
-  if (homesN > 0 && nv(state.accPerHome) > 0) itm("Accessories", "units", homesN, nv(state.accPerHome));
-  if (homesN > 0 && nv(state.mgmtPerHome) > 0) itm("Management", "units", homesN, nv(state.mgmtPerHome));
+  const _accQ = state.accQty !== "" ? nv(state.accQty) : homesN; if (_accQ > 0) itm("Accessories", "units", _accQ, P["Accessories Fee"]);
+  const _mgmtQ = state.mgmtQty !== "" ? nv(state.mgmtQty) : homesN; if (_mgmtQ > 0) itm("Management", "units", _mgmtQ, P["Management Fee"]);
 
   blank();
   rows.push(["", "TOTAL", "", "", "", "", sub.mainSPT + sub.s6]);
@@ -415,8 +494,8 @@ export default function App() {
 
   // Sec 6
   const [lmSels, setLmSels] = useState({});
-  const [tbOutlet1c, setTbOutlet1c] = useState(String(P["TB Outlet 1C"]));
-  const [spliceHouse, setSpliceHouse] = useState(String(P["Splice@House"]));
+  const [tbQty, setTbQty] = useState("");
+  const [spliceHouseQty, setSpliceHouseQty] = useState("");
   const [spliceDrop, setSpliceDrop] = useState("0");
   const [breakSewer, setBreakSewer] = useState("0");
 
@@ -424,8 +503,8 @@ export default function App() {
   const [survey, setSurvey] = useState("1");
   const [igis, setIgis] = useState("1");
   const [testReport, setTestReport] = useState("1");
-  const [accPerHome, setAccPerHome] = useState(String(P["Accessories Fee"]));
-  const [mgmtPerHome, setMgmtPerHome] = useState(String(P["Management Fee"]));
+  const [accQty, setAccQty] = useState("");
+  const [mgmtQty, setMgmtQty] = useState("");
 
   // Summary top
   const [oltPON, setOltPON] = useState("0");
@@ -456,14 +535,18 @@ export default function App() {
     const s5 = Object.entries(civilVals).reduce((s, [k, q]) => s + nv(q) * (P[k] || 0), 0);
 
     const lmCable = Object.entries(lmSels).reduce((s, [k, q]) => s + nv(q) * (P[k] || 0), 0);
+    const tbQtyN = tbQty !== "" ? nv(tbQty) : homesN;
+    const spliceHouseQtyN = spliceHouseQty !== "" ? nv(spliceHouseQty) : homesN;
+    const accQtyN = accQty !== "" ? nv(accQty) : homesN;
+    const mgmtQtyN = mgmtQty !== "" ? nv(mgmtQty) : homesN;
     const s6 = lmCable
-      + nv(tbOutlet1c) * homesN
-      + nv(spliceHouse) * homesN
+      + tbQtyN * P["TB Outlet 1C"]
+      + spliceHouseQtyN * P["Splice@House"]
       + nv(spliceDrop) * P["Splice Drop Wire"]
       + nv(breakSewer) * P["Break Sewer"];
 
     const s7 = nv(survey) * P["Survey"] + nv(igis) * P["IGIS"] + nv(testReport) * P["Test & Report"]
-      + homesN * nv(accPerHome) + homesN * nv(mgmtPerHome);
+      + accQtyN * P["Accessories Fee"] + mgmtQtyN * P["Management Fee"];
 
     const mainSPT = s1 + s2 + s3 + s4 + s5 + s7;
     const oltCost = nv(oltPON) * 7500;
@@ -476,16 +559,16 @@ export default function App() {
     return { s1, s2, s3, s4, s5, s6, s7, mainSPT, oltCost, odnCost, oltOdn, lmPerHome, totalVillage, costPerSub, totalPoles, c6q, groundQ };
   }, [wallVals, groundVals, cab600qtys, poleSels, splSels,
       fiberVals, bjSels, termSels, civilVals, lmSels,
-      tbOutlet1c, spliceHouse, spliceDrop, breakSewer,
-      survey, igis, testReport, accPerHome, mgmtPerHome,
+      tbQty, spliceHouseQty, spliceDrop, breakSewer,
+      survey, igis, testReport, accQty, mgmtQty,
       oltPON, odnVal, onuPerHome, onuBoxPerHome, homes]);
 
   const exportState = {
     villageName, homes, oltPON, odnVal, onuPerHome, onuBoxPerHome, pipeNotes, sub,
     wallVals, groundVals, cab600qtys, poleSels, splSels,
     fiberVals, bjSels, termSels, civilVals, lmSels,
-    tbOutlet1c, spliceHouse, spliceDrop, breakSewer,
-    survey, igis, testReport, accPerHome, mgmtPerHome,
+    tbQty, spliceHouseQty, spliceDrop, breakSewer,
+    survey, igis, testReport, accQty, mgmtQty,
   };
 
   // Summary cell component (inline for access to state)
@@ -522,9 +605,14 @@ export default function App() {
           <div style={{ fontWeight: 700, fontSize: 15, fontFamily: FONT }}>FTTH BOQ — Underground Village</div>
           <div style={{ fontSize: 10, color: "#c8f7c5", fontFamily: FONT }}>AIS Fibre · Price List V6.2</div>
         </div>
-        <button onClick={() => doExport(exportState)} style={{ background: C.white, border: "none", borderRadius: 8, color: C.primary, fontWeight: 700, fontSize: 13, padding: "7px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, boxShadow: "0 1px 6px rgba(0,0,0,0.15)" }}>
-          ⬇ Export Excel
-        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={() => doExport(exportState)} style={{ background: C.white, border: "none", borderRadius: 8, color: C.primary, fontWeight: 700, fontSize: 13, padding: "7px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, boxShadow: "0 1px 6px rgba(0,0,0,0.15)" }}>
+            ⬇ Export Excel
+          </button>
+          <button onClick={() => doJsonExport(exportState)} style={{ background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.5)", borderRadius: 8, color: C.white, fontWeight: 600, fontSize: 12, padding: "7px 12px", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+            {} JSON→Template
+          </button>
+        </div>
       </div>
 
       <div style={{ maxWidth: 820, margin: "0 auto", padding: "12px 12px 60px", display: "flex", flexDirection: "column", gap: 10 }}>
@@ -702,8 +790,8 @@ export default function App() {
             <CheckGroup items={[{key:"Round 1C",label:"Round Type 1C"},{key:"Round 2C",label:"Round Type 2C"},{key:"Duct Flat 1C",label:"Duct Flat 1C"},{key:"Duct Flat 2C",label:"Duct Flat 2C"}]} values={lmSels} setValues={setLmSels} />
           </Collapsible>
           <SubLabel>ค่าติดตั้ง per หลัง (auto × จำนวนหลัง)</SubLabel>
-          <PerHomeRow label="Terminal Box Outlet 1C (SC/APC + Pigtail)" priceKey="TB Outlet 1C" homes={homes} override={tbOutlet1c} setOverride={setTbOutlet1c} />
-          <PerHomeRow label="Fusion Splice Terminate @House (SC/APC Pigtail)" priceKey="Splice@House" homes={homes} override={spliceHouse} setOverride={setSpliceHouse} />
+          <PerHomeRow label="Terminal Box Outlet 1C (SC/APC + Pigtail)" priceKey="TB Outlet 1C" homesN={homesN} qtyOverride={tbQty} setQtyOverride={setTbQty} />
+          <PerHomeRow label="Fusion Splice Terminate @House (SC/APC Pigtail)" priceKey="Splice@House" homesN={homesN} qtyOverride={spliceHouseQty} setQtyOverride={setSpliceHouseQty} />
           <SubLabel>รายการพิเศษ (บางหมู่บ้าน)</SubLabel>
           <QtyRow label="Splice Core Fiber Drop Wire" unit="Core" priceKey="Splice Drop Wire" value={spliceDrop} onChange={setSpliceDrop} />
           <QtyRow label="Break Sewer to Post Box" unit="Set" priceKey="Break Sewer" value={breakSewer} onChange={setBreakSewer} />
@@ -715,8 +803,8 @@ export default function App() {
           <QtyRow label="IGIS" unit="L.S." priceKey="IGIS" value={igis} onChange={setIgis} />
           <QtyRow label="Test & Document Report" unit="L.S." priceKey="Test & Report" value={testReport} onChange={setTestReport} />
           <SubLabel>ค่าดำเนินการ per หลัง (auto × จำนวนหลัง)</SubLabel>
-          <PerHomeRow label="Accessories" priceKey="Accessories Fee" homes={homes} override={accPerHome} setOverride={setAccPerHome} />
-          <PerHomeRow label="Management" priceKey="Management Fee" homes={homes} override={mgmtPerHome} setOverride={setMgmtPerHome} />
+          <PerHomeRow label="Accessories" priceKey="Accessories Fee" homesN={homesN} qtyOverride={accQty} setQtyOverride={setAccQty} />
+          <PerHomeRow label="Management" priceKey="Management Fee" homesN={homesN} qtyOverride={mgmtQty} setQtyOverride={setMgmtQty} />
         </Section>
 
       </div>

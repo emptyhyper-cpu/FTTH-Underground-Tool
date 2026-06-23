@@ -310,50 +310,33 @@ async function doExport(state) {
   set(131, state.mgmtQty !== "" ? nv(state.mgmtQty) : homesN);
   set(249, homesN);
 
-  // Build sheet: col A = row#, col B = description (อ้างอิง), col C = qty
-  const tmplRows = [
-    ["วิธีใช้: Copy คอลัมน์ C (Qty) ทั้งหมด → Paste Special (Values Only) ที่คอลัมน์ H ของ Price_Underground_V6_2.xlsx"],
-    [`หมู่บ้าน: ${villageName || "-"}`, "", `จำนวนหลัง: ${homesN}`],
-    ["Row#", "Description", "Qty (วางที่ col H)"],
-  ];
-  const descMap = {
-    5:"ODF 32F Wall Mount",6:"ODF 72F Wall Mount",7:"ODF 144F Wall Mount",8:"ODF 288F Wall Mount",
-    9:"ODF 72F On Ground",10:"CONC BASE 72F (auto)",11:"ODF 600F Cabinet",12:"120F 4U Rack",
-    13:"24F 1U Rack",14:"Install ODF 600F (auto)",15:"CONC BASE 600F (auto)",
-    16:"Splitter 1:4",17:"Splitter 1:8",18:"Splitter 1:16",19:"Panel 8S",
-    20:"Pole 1:8 L1",21:"Pole 1:8 L2",22:"Pole 1:16 L2",23:"RISER POLE (auto)",
-    28:"ADSS 24C",29:"ADSS 48C",30:"ADSS 120C",31:"ADSS-M 12C",
-    32:"ADSS-D 12C",33:"ADSS-D 24C",34:"ADSS-D 48C",35:"ADSS-D 120C",
-    40:"Duct 12C",41:"Duct 24C",42:"Duct 48C",43:"Duct 120C",
-    46:"Duct BJ 12C",47:"Duct BJ 24C",48:"Duct BJ 48C",49:"Duct BJ 120C",
-    50:"Splice 12F",51:"Splice 24F",52:"Splice 48F",53:"Splice 120F",
-    63:"Term 1C",64:"Term 2C",65:"Term 3C",66:"Term 4C",68:"Term 6C",
-    74:"Term 12C",75:"Term 24C",76:"Term 48C",77:"Term 120C",
-    79:"A8 Pole",80:'Flex RT 1/2"',81:'Flex RT 3/4"',82:'Flex RT 1"',
-    83:'Flex 1/2"',84:'Flex 3/4"',85:'Flex 1"',86:'IMC 1/2"',87:'IMC 3/4"',88:'IMC 1"',
-    89:'uPVC 1/2"',90:'uPVC 3/4"',91:'uPVC 1"',92:'PVC 1/2"',93:'PVC 3/4"',94:'PVC 1"',
-    95:'HDPE 1/2"',96:'HDPE 3/4"',97:'HDPE 1"',98:'HDPE 2"',
-    100:"Road Cut",101:"Break PB",102:'PB 4x4 Galv',103:'PB 6x6 Galv',
-    104:'PB 10x10 Galv',105:'PB 12x12 Galv',106:'PB 4x4 Plastic',107:'PB 6x6 Plastic',
-    108:'PB 10x10 Plastic',109:'PB 12x12 Plastic',110:"HH-01 CONC",
-    112:"Flat 1C",113:"Flat 2C",114:"Round 1C",115:"Round 2C",
-    116:"Armoured 1C",117:"Armoured 2C",118:"Duct Flat 1C",119:"Duct Flat 2C",
-    120:"TB Outlet 1C",123:"Splice@House",124:"Splice Drop Wire",125:"Break Sewer",
-    127:"Survey",128:"IGIS",129:"Test & Report",130:"Accessories",131:"Management",
-    249:"ONU (จำนวนหลัง)",
-  };
-  // Output all rows 1-249, qty=0 if not set (template expects all rows)
+  // ── Sheet 2: Copy-Paste Column ──
+  // สร้าง 1 คอลัมน์ที่มี 249 rows ตรงกับ template
+  // วิธีใช้: เปิดไฟล์นี้ + template พร้อมกัน
+  //   1. คลิก cell A1 ของ sheet "Paste-to-H"
+  //   2. Ctrl+Shift+End เพื่อ select ทั้งหมด (A1:A249)
+  //   3. Ctrl+C copy
+  //   4. ไปที่ template คลิก cell H1
+  //   5. Paste Special → Values Only (Ctrl+Shift+V หรือ Alt+E+S+V)
+
+  const pasteRows = [];
+  // row 1-249 เรียงตรง ค่า 0 = ว่าง
   for (let r = 1; r <= 249; r++) {
-    if (descMap[r]) {
-      const qty = rowMap[r] || 0;
-      tmplRows.push([r, descMap[r], qty > 0 ? qty : ""]);
-    }
+    const qty = rowMap[r];
+    pasteRows.push([qty > 0 ? qty : null]);
   }
 
-  const ws2 = XLSX.utils.aoa_to_sheet(tmplRows);
-  ws2["!cols"] = [{ wch: 6 }, { wch: 36 }, { wch: 14 }];
-  // Highlight qty cells that have values
-  XLSX.utils.book_append_sheet(wb, ws2, "Template-Qty");
+  const ws2 = XLSX.utils.aoa_to_sheet(pasteRows);
+  ws2["!cols"] = [{ wch: 12 }];
+
+  // ใส่ชื่อ sheet และ note ที่ row 250
+  pasteRows.push([null]);
+  pasteRows.push([`หมู่บ้าน: ${villageName || "-"} | หลัง: ${homesN}`]);
+
+  // สร้าง sheet ใหม่จาก pasteRows ที่อัปเดตแล้ว
+  const ws2final = XLSX.utils.aoa_to_sheet(pasteRows);
+  ws2final["!cols"] = [{ wch: 18 }];
+  XLSX.utils.book_append_sheet(wb, ws2final, "Paste-to-H");
 
   const fname = villageName ? `BOQ_${villageName}.xlsx` : "BOQ_Underground.xlsx";
   XLSX.writeFile(wb, fname);

@@ -319,23 +319,134 @@ async function doExport(state) {
   //   4. ไปที่ template คลิก cell H1
   //   5. Paste Special → Values Only (Ctrl+Shift+V หรือ Alt+E+S+V)
 
-  const pasteRows = [];
-  // row 1-249 เรียงตรง ค่า 0 = ว่าง
+  // row# → ชื่อจาก template จริง
+  const descMap = {
+    3:"[Header] Description",
+    5:"ODF 32F Outdoor Wall Mount without Splitter Modular (Max. 5 Slot)",
+    6:"ODF 72F Outdoor Wall Mount without Splitter Modular (Max. 10 Slot)",
+    7:"ODF 144F Outdoor Wall Mount without Splitter Modular (Max. 20 Slot)",
+    8:"ODF 288F Outdoor Wall Mount without Splitter Modular (Max. 40 Slot)",
+    9:"ODF 72F Outdoor On Ground without Splitter Modular (Max. 10 Slot)",
+    10:"CONC BASE FOUNDATION WITH GROUND WIRE FOR ODF 72F OUTDOOR ON GROUND TYPE",
+    11:"ODF 600F OUTDOOR CABINET FOR ISP",
+    12:"ODF 120F 4U RACK MOUNT FOR ODF 600F OUTDOOR CABINET",
+    13:"ODF 24F 1U RACK MOUNT FOR ODF 600F OUTDOOR CABINET",
+    14:"Install ODF 600F OUTDOOR CABINET FOR ISP",
+    15:"CONC BASE FOUNDATION WITH GROUND WIRE FOR ODF 600F OUTDOOR CABINET FOR ISP",
+    16:"Splitter Modular 1:4 in Cabinet",
+    17:"Splitter Modular 1:8 in Cabinet",
+    18:"Splitter Modular 1:16 in Cabinet",
+    19:"Panel 8S with adapter",
+    20:"Pole mount closure with splitter 1:8 Level 1 (Outdoor type)",
+    21:"Pole mount closure with splitter 1:8 Level 2 (Outdoor type)",
+    22:"Pole mount closure with splitter 1:16 Level 2 (Outdoor type)",
+    23:"RISER POLE Support Pole Mount Splitter",
+    24:"Fiber Patch Cord (SC/APC-SC/APC) Simplex 1M",
+    25:"Fiber Patch Cord (SC/APC-SC/APC) Simplex 1.5M",
+    26:"Fiber Patch Cord (SC/APC-SC/APC) Simplex 3M",
+    28:"SM-Flame Retardant-A Aerial Cable ADSS Type 24C",
+    29:"SM-Flame Retardant-A Aerial Cable ADSS Type 48C",
+    30:"SM-Flame Retardant-A Aerial Cable ADSS Type 120C",
+    31:"SM-Flame Retardant-A Aerial Cable ADSS-M Type 12C",
+    32:"SM-Flame Retardant-AD Aerial Cable ADSS Install in Duct 12C",
+    33:"SM-Flame Retardant-AD Aerial Cable ADSS Install in Duct 24C",
+    34:"SM-Flame Retardant-AD Aerial Cable ADSS Install in Duct 48C",
+    35:"SM-Flame Retardant-AD Aerial Cable ADSS Install in Duct 120C",
+    36:"SM-Flame Retardant-AD Aerial Cable ARSS Install in Duct 12C",
+    37:"SM-Flame Retardant-AD Aerial Cable ARSS Install in Duct 24C",
+    38:"SM-Flame Retardant-AD Aerial Cable ARSS Install in Duct 48C",
+    39:"SM-Flame Retardant-AD Aerial Cable ARSS Install in Duct 120C",
+    40:"SM-D Duct Cable Install in Duct Type 12c",
+    41:"SM-D Duct Cable Install in Duct Type 24c",
+    42:"SM-D Duct Cable Install in Duct Type 48c",
+    43:"SM-D Duct Cable Install in Duct Type 120c",
+    46:"Duct Branch Joint 12c Support Duct Cable Lastmile",
+    47:"Duct Branch Joint 24c Support Duct Cable Lastmile",
+    48:"Duct Branch Joint 48c Support Duct Cable Lastmile",
+    49:"Duct Branch Joint 120c Support Duct Cable Lastmile",
+    50:"Fusion Splice Through 12F @ BJ Closure/Point",
+    51:"Fusion Splice Through 24F @ BJ Closure/Point",
+    52:"Fusion Splice Through 48F @ BJ Closure/Point",
+    53:"Fusion Splice Through 120F @ BJ Closure/Point",
+    63:"Terminate service (Include Pigtail) 1C",
+    64:"Terminate service (Include Pigtail) 2C",
+    65:"Terminate service (Include Pigtail) 3C",
+    66:"Terminate service (Include Pigtail) 4C",
+    68:"Terminate service (Include Pigtail) 6C",
+    74:"Terminate service (Include Pigtail) 12C",
+    75:"Terminate service (Include Pigtail) 24C",
+    76:"Terminate service (Include Pigtail) 48C",
+    77:"Terminate service (Include Pigtail) 120C",
+    79:"A8 Concrete Pole",
+    80:'Flex Conduit Rain Tight Ø 1/2"',
+    81:'Flex Conduit Rain Tight Ø 3/4"',
+    82:'Flex Conduit Rain Tight Ø 1"',
+    83:'Flex Conduit Ø 1/2"',
+    84:'Flex Conduit Ø 3/4"',
+    85:'Flex Conduit Ø 1"',
+    86:'I.M.C. Conduit Ø 1/2"',
+    87:'I.M.C. Conduit Ø 3/4"',
+    88:'I.M.C. Conduit Ø 1"',
+    89:'uPVC Conduit 1-Ø 1/2"',
+    90:'uPVC Conduit 1-Ø 3/4"',
+    91:'uPVC Conduit 1-Ø 1"',
+    92:'PVC Conduit 1-Ø 1/2"',
+    93:'PVC Conduit 1-Ø 3/4"',
+    94:'PVC Conduit 1-Ø 1"',
+    95:'HDPE Conduit 1-Ø 1/2"',
+    96:'HDPE Conduit 1-Ø 3/4"',
+    97:'HDPE Conduit 1-Ø 1"',
+    98:'HDPE Conduit 1-Ø 2"',
+    100:"Open Cut Road Concrete and repair",
+    101:"BREAK THROGH PB.",
+    102:'Pull Box size 4"x4"x4" Galvanized',
+    103:'Pull Box size 6"x6"x4" Galvanized',
+    104:'Pull Box size 10"x10"x6" Galvanized',
+    105:'Pull Box size 12"x12"x6" Galvanized',
+    106:'Pull Box size 4"x4"x4" Plastic',
+    107:'Pull Box size 6"x6"x4" Plastic',
+    108:'Pull Box size 10"x10"x6" Plastic',
+    109:'Pull Box size 12"x12"x6" Plastic',
+    110:"HH-01 CONC",
+    112:"SM-AD Dropwire Flat Type Install in Duct 1C",
+    113:"SM-AD Dropwire Flat Type Install in Duct 2C",
+    114:"SM-AD Dropwire Round Type Install in Duct 1C",
+    115:"SM-AD Dropwire Round Type Install in Duct 2C",
+    116:"SM-AD Dropwire Armoured Round Type Install in Duct 1C",
+    117:"SM-AD Dropwire Armoured Round Type Install in Duct 2C",
+    118:"SM-D Duct Dropwire Flat Type Install in Duct 1C",
+    119:"SM-D Duct Dropwire Flat Type Install in Duct 2C",
+    120:"Terminal Box Outlet 1C with Adapter SC/APC include SC/APC Pigtail",
+    121:"Terminal Box Outlet 2C with Adapter SC/APC include SC/APC Pigtail",
+    122:"Terminal Box Face Plate",
+    123:"Fusion Splice Terminate @House with SC/APC Pigtail",
+    124:"Splice core fiber drop wire",
+    125:"break sewer to Post Box",
+    127:"Survey & Drawings",
+    128:"IGIS",
+    129:"Test & Document Report",
+    130:"Accessories",
+    131:"Management",
+    248:"ONU Installation",
+  };
+
+  // Header
+  const pasteRows = [
+    ["วิธีใช้: copy col B (Qty) → ไปที่ template คลิก H1 → Paste Special Values Only"],
+    [`หมู่บ้าน: ${villageName || "-"}`, `จำนวนหลัง: ${homesN}`],
+    ["Row# (อ้างอิง)", "ชื่อ item (ตรงกับ template)", "Qty ← copy col นี้"],
+    ["", "", ""],
+  ];
+
+  // rows 1-249 ครบทุก row
   for (let r = 1; r <= 249; r++) {
     const qty = rowMap[r];
-    pasteRows.push([qty > 0 ? qty : null]);
+    const desc = descMap[r] || "";
+    pasteRows.push([r, desc, qty > 0 ? qty : null]);
   }
 
-  const ws2 = XLSX.utils.aoa_to_sheet(pasteRows);
-  ws2["!cols"] = [{ wch: 12 }];
-
-  // ใส่ชื่อ sheet และ note ที่ row 250
-  pasteRows.push([null]);
-  pasteRows.push([`หมู่บ้าน: ${villageName || "-"} | หลัง: ${homesN}`]);
-
-  // สร้าง sheet ใหม่จาก pasteRows ที่อัปเดตแล้ว
   const ws2final = XLSX.utils.aoa_to_sheet(pasteRows);
-  ws2final["!cols"] = [{ wch: 18 }];
+  ws2final["!cols"] = [{ wch: 10 }, { wch: 62 }, { wch: 10 }];
   XLSX.utils.book_append_sheet(wb, ws2final, "Paste-to-H");
 
   const fname = villageName ? `BOQ_${villageName}.xlsx` : "BOQ_Underground.xlsx";

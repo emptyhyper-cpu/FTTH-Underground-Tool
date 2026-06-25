@@ -245,6 +245,113 @@ function AutoNote({ children }) {
 }
 
 // ── JSON EXPORT (สำหรับ Python fill_template.py) ──
+// ── IMPORT — อ่าน Excel ที่ export มาแล้ว restore state ──
+async function doImport(file, setters) {
+  const XLSX = await import("https://cdn.jsdelivr.net/npm/xlsx@0.18.5/xlsx.mjs");
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(buf);
+
+  // อ่าน sheet Summary (row 2 = ค่า)
+  const ws1 = wb.Sheets["Summary"];
+  if (!ws1) { alert("ไม่พบ sheet Summary ในไฟล์"); return; }
+  const sum = XLSX.utils.sheet_to_json(ws1, { header: 1 });
+  if (sum.length >= 2) {
+    const vals = sum[1];
+    // Summary: village, homes, costPerSub, totalVillage, oltOdn, mainSPT, lmPerHome, onuPerHome, onuBox, pipeNotes
+    setters.setVillageName(String(vals[0] || ""));
+    setters.setHomes(String(vals[1] || "0"));
+    setters.setOnuPerHome(String(vals[7] || "550"));
+    setters.setOnuBoxPerHome(String(vals[8] || "1000"));
+    setters.setPipeNotes(String(vals[9] || "0"));
+  }
+
+  // อ่าน sheet Paste-to-H (col A=row#, col B=desc, col C=qty) เริ่ม row 5 (index 4)
+  const ws2 = wb.Sheets["Paste-to-H"];
+  if (!ws2) { alert("ไม่พบ sheet Paste-to-H ในไฟล์"); return; }
+  const rows = XLSX.utils.sheet_to_json(ws2, { header: 1 });
+
+  // build rowMap: rowNum → qty
+  const rowMap = {};
+  for (const row of rows) {
+    const rn = parseInt(row[0]);
+    const qty = parseFloat(row[2]);
+    if (!isNaN(rn) && !isNaN(qty) && qty > 0) rowMap[rn] = qty;
+  }
+
+  const nv = (v) => parseFloat(v) || 0;
+  const q = (r) => rowMap[r] || 0;
+
+  // Wall mount
+  const newWallVals = {};
+  const wMap = { 5:"ODF 32F Wall", 6:"ODF 72F Wall", 7:"ODF 144F Wall", 8:"ODF 288F Wall" };
+  Object.entries(wMap).forEach(([r, k]) => { if (q(r) > 0) newWallVals[k] = String(q(r)); });
+  setters.setWallVals(newWallVals);
+
+  // On Ground
+  if (q(9) > 0) setters.setGroundVals({ "ODF 72F Ground": String(q(9)) });
+  else setters.setGroundVals({});
+
+  // 600F
+  setters.setCab600qtys({ "ODF 600F Cabinet": String(q(11)||""), "ODF 120F 4U Rack": String(q(12)||""), "ODF 24F 1U Rack": String(q(13)||"") });
+
+  // Pole
+  const newPole = {};
+  const pMap = { 20:"Pole 1:8 L1", 21:"Pole 1:8 L2", 22:"Pole 1:16 L2" };
+  Object.entries(pMap).forEach(([r, k]) => { if (q(r) > 0) newPole[k] = String(q(r)); });
+  setters.setPoleSels(newPole);
+
+  // Splitter
+  const newSpl = {};
+  const sMap = { 16:"Splitter 1:4", 17:"Splitter 1:8", 18:"Splitter 1:16", 19:"Panel 8S" };
+  Object.entries(sMap).forEach(([r, k]) => { if (q(r) > 0) newSpl[k] = String(q(r)); });
+  setters.setSplSels(newSpl);
+
+  // Fiber
+  const newFiber = {};
+  const fMap = { 28:"ADSS 24C",29:"ADSS 48C",30:"ADSS 120C",31:"ADSS-M 12C",32:"ADSS-D 12C",33:"ADSS-D 24C",34:"ADSS-D 48C",35:"ADSS-D 120C",40:"Duct 12C",41:"Duct 24C",42:"Duct 48C",43:"Duct 120C" };
+  Object.entries(fMap).forEach(([r, k]) => { if (q(r) > 0) newFiber[k] = String(q(r)); });
+  setters.setFiberVals(newFiber);
+
+  // BJ + Splice (paired)
+  const newBj = {};
+  const bjMap = { 46:["Duct BJ 12C","Splice 12F"], 47:["Duct BJ 24C","Splice 24F"], 48:["Duct BJ 48C","Splice 48F"], 49:["Duct BJ 120C","Splice 120F"] };
+  Object.entries(bjMap).forEach(([r, [bj, sp]]) => { if (q(r) > 0) { newBj[bj] = String(q(r)); newBj[sp] = String(q(parseInt(r)+4)); } });
+  setters.setBjSels(newBj);
+
+  // Terminate
+  const newTerm = {};
+  const tMap = { 63:"Term 1C",64:"Term 2C",65:"Term 3C",66:"Term 4C",68:"Term 6C",74:"Term 12C",75:"Term 24C",76:"Term 48C",77:"Term 120C" };
+  Object.entries(tMap).forEach(([r, k]) => { if (q(r) > 0) newTerm[k] = String(q(r)); });
+  setters.setTermSels(newTerm);
+
+  // Civil
+  const newCivil = {};
+  const cMap = { 79:"A8 Pole",80:'Flex RT 1/2"',81:'Flex RT 3/4"',82:'Flex RT 1"',83:'Flex 1/2"',84:'Flex 3/4"',85:'Flex 1"',86:'IMC 1/2"',87:'IMC 3/4"',88:'IMC 1"',89:'uPVC 1/2"',90:'uPVC 3/4"',91:'uPVC 1"',92:'PVC 1/2"',93:'PVC 3/4"',94:'PVC 1"',95:'HDPE 1/2"',96:'HDPE 3/4"',97:'HDPE 1"',98:'HDPE 2"',100:"Road Cut",101:"Break PB",102:"PB 4x4 Galv",103:"PB 6x6 Galv",104:"PB 10x10 Galv",105:"PB 12x12 Galv",106:"PB 4x4 Plastic",107:"PB 6x6 Plastic",108:"PB 10x10 Plastic",109:"PB 12x12 Plastic",110:"HH-01 CONC" };
+  Object.entries(cMap).forEach(([r, k]) => { if (q(r) > 0) newCivil[k] = String(q(r)); });
+  setters.setCivilVals(newCivil);
+
+  // Lastmile cable
+  const newLm = {};
+  const lMap = { 112:"Flat 1C",113:"Flat 2C",114:"Round 1C",115:"Round 2C",116:"Armoured 1C",117:"Armoured 2C",118:"Duct Flat 1C",119:"Duct Flat 2C" };
+  Object.entries(lMap).forEach(([r, k]) => { if (q(r) > 0) newLm[k] = String(q(r)); });
+  setters.setLmSels(newLm);
+
+  // Lastmile per-home
+  if (q(120) > 0) setters.setTbQty(String(q(120)));
+  if (q(123) > 0) setters.setSpliceHouseQty(String(q(123)));
+  if (q(124) > 0) setters.setSpliceDrop(String(q(124)));
+  if (q(125) > 0) setters.setBreakSewer(String(q(125)));
+
+  // Management
+  if (q(127) > 0) setters.setSurvey(String(q(127)));
+  if (q(128) > 0) setters.setIgis(String(q(128)));
+  if (q(129) > 0) setters.setTestReport(String(q(129)));
+  if (q(130) > 0) setters.setAccQty(String(q(130)));
+  if (q(131) > 0) setters.setMgmtQty(String(q(131)));
+
+  alert(`✓ Import สำเร็จ: ${Object.keys(rowMap).length} รายการ`);
+}
+
 // ── EXCEL EXPORT ──
 // Sheet1: Summary แนวนอน
 // Sheet2: Template-compatible — col A=row_number, col B=qty
@@ -626,6 +733,14 @@ export default function App() {
       survey, igis, testReport, accQty, mgmtQty,
       oltPON, odnVal, onuPerHome, onuBoxPerHome, homes]);
 
+  const importSetters = {
+    setVillageName, setHomes, setWallVals, setGroundVals, setCab600qtys,
+    setPoleSels, setSplSels, setFiberVals, setBjSels, setTermSels, setCivilVals,
+    setLmSels, setTbQty, setSpliceHouseQty, setSpliceDrop, setBreakSewer,
+    setSurvey, setIgis, setTestReport, setAccQty, setMgmtQty,
+    setOnuPerHome, setOnuBoxPerHome, setPipeNotes,
+  };
+
   const exportState = {
     villageName, homes, oltPON, odnVal, onuPerHome, onuBoxPerHome, pipeNotes, sub,
     wallVals, groundVals, cab600qtys, poleSels, splSels,
@@ -670,8 +785,16 @@ export default function App() {
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <button onClick={() => doExport(exportState)} style={{ background: C.white, border: "none", borderRadius: 8, color: C.primary, fontWeight: 700, fontSize: 13, padding: "7px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, boxShadow: "0 1px 6px rgba(0,0,0,0.15)", fontFamily: FONT }}>
-            ⬇ Export Excel
+            ⬇ Export
           </button>
+          <label style={{ background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.5)", borderRadius: 8, color: C.white, fontWeight: 600, fontSize: 13, padding: "7px 12px", cursor: "pointer", fontFamily: FONT, display:"flex", alignItems:"center", gap:5 }}>
+            ⬆ Import
+            <input type="file" accept=".xlsx" style={{ display:"none" }} onChange={e => {
+              const f = e.target.files[0];
+              if (f) doImport(f, importSetters);
+              e.target.value = "";
+            }} />
+          </label>
           <button onClick={() => setShowAdmin(true)} style={{ background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.4)", borderRadius: 8, color: C.white, fontWeight: 600, fontSize: 12, padding: "7px 10px", cursor: "pointer", fontFamily: FONT }}>
             ⚙ ราคา
           </button>

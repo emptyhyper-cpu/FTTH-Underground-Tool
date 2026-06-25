@@ -263,6 +263,8 @@ async function doImport(file, setters) {
     setters.setOnuPerHome(String(vals[7] || "550"));
     setters.setOnuBoxPerHome(String(vals[8] || "1000"));
     setters.setPipeNotes(String(vals[9] || "0"));
+    if (vals[10] != null) setters.setOltPON(String(vals[10]));
+    if (vals[11] != null) setters.setOdnVal(String(vals[11]));
   }
 
   // อ่าน sheet Paste-to-H (col A=row#, col B=desc, col C=qty) เริ่ม row 5 (index 4)
@@ -363,8 +365,8 @@ async function doExport(state) {
   const homesN = nv(homes);
 
   // ── Sheet 1: Summary ──
-  const hdr = ["ชื่อหมู่บ้าน","จำนวนหลัง","Cost/Sub","Total Village Cost","OLT+ODN","Main Fiber ถึง SPT2","LM/หลัง","ติดตั้ง ONU/หลัง","ONU Box/หลัง","ค่าเดินท่อ (บันทึก)"];
-  const val = [villageName||"", homesN, Math.round(sub.costPerSub), Math.round(sub.totalVillage), Math.round(sub.oltOdn), Math.round(sub.mainSPT), Math.round(sub.lmPerHome), nv(onuPerHome), nv(onuBoxPerHome), nv(pipeNotes)];
+  const hdr = ["ชื่อหมู่บ้าน","จำนวนหลัง","Cost/Sub","Total Village Cost","OLT+ODN","Main Fiber ถึง SPT2","LM/หลัง","ติดตั้ง ONU/หลัง","ONU Box/หลัง","ค่าเดินท่อ (บันทึก)","OLT_PON","ODN_VAL"];
+  const val = [villageName||"", homesN, Math.round(sub.costPerSub), Math.round(sub.totalVillage), Math.round(sub.oltOdn), Math.round(sub.mainSPT), Math.round(sub.lmPerHome), nv(onuPerHome), nv(onuBoxPerHome), nv(pipeNotes), nv(oltPON), nv(odnVal)];
   const ws1 = XLSX.utils.aoa_to_sheet([hdr, val]);
   ws1["!cols"] = hdr.map(h => ({ wch: Math.max(h.length + 2, 14) }));
   XLSX.utils.book_append_sheet(wb, ws1, "Summary");
@@ -739,6 +741,7 @@ export default function App() {
     setLmSels, setTbQty, setSpliceHouseQty, setSpliceDrop, setBreakSewer,
     setSurvey, setIgis, setTestReport, setAccQty, setMgmtQty,
     setOnuPerHome, setOnuBoxPerHome, setPipeNotes,
+    setOltPON, setOdnVal,
   };
 
   const exportState = {

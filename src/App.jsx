@@ -257,6 +257,14 @@ async function doImport(file, setters) {
   const sum = XLSX.utils.sheet_to_json(ws1, { header: 1 });
   if (sum.length >= 2) {
     const vals = sum[1];
+    // ตรวจ version (col 12) — ถ้าไม่ใช่ V7 เตือน เพราะ row mapping ต่างกัน
+    const fileVer = vals[12];
+    if (fileVer && fileVer !== "V7") {
+      if (!confirm(`⚠️ ไฟล์นี้เป็นเวอร์ชัน ${fileVer} แต่โปรแกรมปัจจุบันเป็น V7\nตำแหน่ง row อาจไม่ตรงกัน ข้อมูลอาจผิดช่อง\n\nต้องการ import ต่อไหม?`)) return;
+    }
+    if (!fileVer) {
+      if (!confirm("⚠️ ไฟล์นี้ไม่มีข้อมูลเวอร์ชัน (อาจเป็นไฟล์เก่าก่อน V7)\nตำแหน่ง row อาจไม่ตรงกัน\n\nต้องการ import ต่อไหม?")) return;
+    }
     // Summary: village, homes, costPerSub, totalVillage, oltOdn, mainSPT, lmPerHome, onuPerHome, onuBox, pipeNotes
     setters.setVillageName(String(vals[0] || ""));
     setters.setHomes(String(vals[1] || "0"));
@@ -350,6 +358,7 @@ async function doImport(file, setters) {
   if (q(130) > 0) setters.setTestReport(String(q(130)));
   if (q(131) > 0) setters.setAccQty(String(q(131)));
   if (q(132) > 0) setters.setMgmtQty(String(q(132)));
+  // ONU row 250 = จำนวนหลัง (backup ถ้า Summary ไม่มี)
 
   alert(`✓ Import สำเร็จ: ${Object.keys(rowMap).length} รายการ`);
 }
@@ -365,8 +374,8 @@ async function doExport(state) {
   const homesN = nv(homes);
 
   // ── Sheet 1: Summary ──
-  const hdr = ["ชื่อหมู่บ้าน","จำนวนหลัง","Cost/Sub","Total Village Cost","OLT+ODN","Main Fiber ถึง SPT2","LM/หลัง","ติดตั้ง ONU/หลัง","ONU Box/หลัง","ค่าเดินท่อ (บันทึก)","OLT_PON","ODN_VAL"];
-  const val = [villageName||"", homesN, Math.round(sub.costPerSub), Math.round(sub.totalVillage), Math.round(sub.oltOdn), Math.round(sub.mainSPT), Math.round(sub.lmPerHome), nv(onuPerHome), nv(onuBoxPerHome), nv(pipeNotes), nv(oltPON), nv(odnVal)];
+  const hdr = ["ชื่อหมู่บ้าน","จำนวนหลัง","Cost/Sub","Total Village Cost","OLT+ODN","Main Fiber ถึง SPT2","LM/หลัง","ติดตั้ง ONU/หลัง","ONU Box/หลัง","ค่าเดินท่อ (บันทึก)","OLT_PON","ODN_VAL","VERSION"];
+  const val = [villageName||"", homesN, Math.round(sub.costPerSub), Math.round(sub.totalVillage), Math.round(sub.oltOdn), Math.round(sub.mainSPT), Math.round(sub.lmPerHome), nv(onuPerHome), nv(onuBoxPerHome), nv(pipeNotes), nv(oltPON), nv(odnVal), "V7"];
   const ws1 = XLSX.utils.aoa_to_sheet([hdr, val]);
   ws1["!cols"] = hdr.map(h => ({ wch: Math.max(h.length + 2, 14) }));
   XLSX.utils.book_append_sheet(wb, ws1, "Summary");
@@ -549,7 +558,7 @@ async function doExport(state) {
   ];
 
   // rows 1-249 ครบทุก row
-  for (let r = 1; r <= 249; r++) {
+  for (let r = 1; r <= 250; r++) {
     const qty = rowMap[r];
     const desc = descMap[r] || "";
     pasteRows.push([r, desc, qty > 0 ? qty : null]);

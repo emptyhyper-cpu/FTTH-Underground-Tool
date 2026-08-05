@@ -23,14 +23,16 @@ const P = {
   "ODF 600F Cabinet": 90000, "ODF 120F 4U Rack": 20000, "ODF 24F 1U Rack": 10000,
   "Install ODF 600F": 7000, "CONC BASE 600F": 20000,
   "Splitter 1:4": 350, "Splitter 1:8": 550, "Splitter 1:16": 700, "Panel 8S": 200,
+  "Patch Cord 1M": 50, "Patch Cord 1.5M": 50, "Patch Cord 3M": 50,
   "Pole 1:8 L1": 4000, "Pole 1:8 L2": 2500, "Pole 1:16 L2": 5000, "RISER POLE": 3000,
   "ADSS 24C": 120, "ADSS 48C": 130, "ADSS 120C": 145, "ADSS-M 12C": 85,
   "ADSS-D 12C": 85, "ADSS-D 24C": 120, "ADSS-D 48C": 130, "ADSS-D 120C": 145,
   "Duct 12C": 100, "Duct 24C": 150, "Duct 48C": 165, "Duct 120C": 180,
   "Duct BJ 12C": 4500, "Duct BJ 24C": 5300, "Duct BJ 48C": 6800, "Duct BJ 120C": 10800,
   "Splice 12F": 4300, "Splice 24F": 5600, "Splice 48F": 7000, "Splice 120F": 12500,
-  "Term 1C": 400, "Term 2C": 780, "Term 3C": 1170, "Term 4C": 1300,
-  "Term 6C": 1560, "Term 12C": 4500, "Term 24C": 9000, "Term 48C": 17000, "Term 120C": 25000,
+  "Term 1C": 400, "Term 2C": 780, "Term 3C": 1170, "Term 4C": 1300, "Term 5C": 1430,
+  "Term 6C": 1560, "Term 7C": 1690, "Term 8C": 1820, "Term 9C": 1950, "Term 10C": 2080, "Term 11C": 2210,
+  "Term 12C": 4500, "Term 24C": 9000, "Term 48C": 17000, "Term 120C": 25000,
   "A8 Pole": 18000,
   'Flex RT 1/2"': 200, 'Flex RT 3/4"': 250, 'Flex RT 1"': 300,
   'Flex 1/2"': 100, 'Flex 3/4"': 150, 'Flex 1"': 200,
@@ -44,7 +46,7 @@ const P = {
   "HH-01 CONC": 6000,
   "Flat 1C": 17, "Flat 2C": 25, "Round 1C": 21, "Round 2C": 25,
   "Armoured 1C": 21, "Armoured 2C": 40, "Duct Flat 1C": 16.38, "Duct Flat 2C": 18.72,
-  "TB Outlet 1C": 200, "Splice@House": 350,
+  "TB Outlet 1C": 200, "TB Outlet 2C": 250, "TB Face Plate": 280, "Splice@House": 350,
   "Splice Drop Wire": 350, "Break Sewer": 2500,
   "Survey": 5000, "IGIS": 5000, "Test & Report": 4000,
   "Accessories Fee": 500, "Management Fee": 1000,
@@ -312,7 +314,7 @@ async function doImport(file, setters) {
 
   // Splitter
   const newSpl = {};
-  const sMap = { 16:"Splitter 1:4", 17:"Splitter 1:8", 18:"Splitter 1:16", 19:"Panel 8S" };
+  const sMap = { 16:"Splitter 1:4", 17:"Splitter 1:8", 18:"Splitter 1:16", 19:"Panel 8S", 24:"Patch Cord 1M", 25:"Patch Cord 1.5M", 26:"Patch Cord 3M" };
   Object.entries(sMap).forEach(([r, k]) => { if (q(r) > 0) newSpl[k] = String(q(r)); });
   setters.setSplSels(newSpl);
 
@@ -330,7 +332,7 @@ async function doImport(file, setters) {
 
   // Terminate
   const newTerm = {};
-  const tMap = { 63:"Term 1C",64:"Term 2C",65:"Term 3C",66:"Term 4C",68:"Term 6C",74:"Term 12C",75:"Term 24C",76:"Term 48C",77:"Term 120C" };
+  const tMap = { 63:"Term 1C",64:"Term 2C",65:"Term 3C",66:"Term 4C",67:"Term 5C",68:"Term 6C",69:"Term 7C",70:"Term 8C",71:"Term 9C",72:"Term 10C",73:"Term 11C",74:"Term 12C",75:"Term 24C",76:"Term 48C",77:"Term 120C" };
   Object.entries(tMap).forEach(([r, k]) => { if (q(r) > 0) newTerm[k] = String(q(r)); });
   setters.setTermSels(newTerm);
 
@@ -397,7 +399,7 @@ async function doExport(state) {
   set(11, c6q); set(12, nv(state.cab600qtys["ODF 120F 4U Rack"])); set(13, nv(state.cab600qtys["ODF 24F 1U Rack"]));
   set(14, c6q); set(15, c6q); // Install + CONC auto
   // Splitter
-  const sR = { "Splitter 1:4": 16, "Splitter 1:8": 17, "Splitter 1:16": 18, "Panel 8S": 19 };
+  const sR = { "Splitter 1:4": 16, "Splitter 1:8": 17, "Splitter 1:16": 18, "Panel 8S": 19, "Patch Cord 1M": 24, "Patch Cord 1.5M": 25, "Patch Cord 3M": 26 };
   Object.entries(state.splSels).forEach(([k, q]) => { if (sR[k]) set(sR[k], nv(q)); });
   // Pole
   const pR = { "Pole 1:8 L1": 20, "Pole 1:8 L2": 21, "Pole 1:16 L2": 22 };
@@ -411,7 +413,7 @@ async function doExport(state) {
   const bR = { "Duct BJ 12C":46,"Duct BJ 24C":47,"Duct BJ 48C":48,"Duct BJ 120C":49,"Splice 12F":50,"Splice 24F":51,"Splice 48F":52,"Splice 120F":53 };
   Object.entries(state.bjSels).forEach(([k, q]) => { if (bR[k]) set(bR[k], nv(q)); });
   // Terminate
-  const tR = { "Term 1C":63,"Term 2C":64,"Term 3C":65,"Term 4C":66,"Term 6C":68,"Term 12C":74,"Term 24C":75,"Term 48C":76,"Term 120C":77 };
+  const tR = { "Term 1C":63,"Term 2C":64,"Term 3C":65,"Term 4C":66,"Term 5C":67,"Term 6C":68,"Term 7C":69,"Term 8C":70,"Term 9C":71,"Term 10C":72,"Term 11C":73,"Term 12C":74,"Term 24C":75,"Term 48C":76,"Term 120C":77 };
   Object.entries(state.termSels).forEach(([k, q]) => { if (tR[k]) set(tR[k], nv(q)); });
   // Civil
   const cR = { "A8 Pole":79,'Flex RT 1/2"':80,'Flex RT 3/4"':81,'Flex RT 1"':82,'Flex 1/2"':83,'Flex 3/4"':84,'Flex 1"':85,'IMC 1/2"':86,'IMC 3/4"':87,'IMC 1"':88,'uPVC 1/2"':89,'uPVC 3/4"':90,'uPVC 1"':91,'PVC 1/2"':92,'PVC 3/4"':93,'PVC 1"':94,'HDPE 1/2"':95,'HDPE 3/4"':96,'HDPE 1"':97,'HDPE 2"':98,"Duct in Sand":100,"Road Cut":101,"Break PB":102,"PB 4x4 Galv":103,"PB 6x6 Galv":104,"PB 10x10 Galv":105,"PB 12x12 Galv":106,"PB 4x4 Plastic":107,"PB 6x6 Plastic":108,"PB 10x10 Plastic":109,"PB 12x12 Plastic":110,"HH-01 CONC":111 };
@@ -462,6 +464,9 @@ async function doExport(state) {
     24:"Fiber Patch Cord (SC/APC-SC/APC) Simplex 1M",
     25:"Fiber Patch Cord (SC/APC-SC/APC) Simplex 1.5M",
     26:"Fiber Patch Cord (SC/APC-SC/APC) Simplex 3M",
+    24:"Fiber Patch Cord (SC/APC-SC/APC) Simplex 1M",
+    25:"Fiber Patch Cord (SC/APC-SC/APC) Simplex 1.5M",
+    26:"Fiber Patch Cord (SC/APC-SC/APC) Simplex 3M",
     28:"SM-Flame Retardant-A Aerial Cable ADSS Type 24C",
     29:"SM-Flame Retardant-A Aerial Cable ADSS Type 48C",
     30:"SM-Flame Retardant-A Aerial Cable ADSS Type 120C",
@@ -490,7 +495,13 @@ async function doExport(state) {
     64:"Terminate service (Include Pigtail) 2C",
     65:"Terminate service (Include Pigtail) 3C",
     66:"Terminate service (Include Pigtail) 4C",
+    67:"Terminate service (Include Pigtail) 5C",
     68:"Terminate service (Include Pigtail) 6C",
+    69:"Terminate service (Include Pigtail) 7C",
+    70:"Terminate service (Include Pigtail) 8C",
+    71:"Terminate service (Include Pigtail) 9C",
+    72:"Terminate service (Include Pigtail) 10C",
+    73:"Terminate service (Include Pigtail) 11C",
     74:"Terminate service (Include Pigtail) 12C",
     75:"Terminate service (Include Pigtail) 24C",
     76:"Terminate service (Include Pigtail) 48C",
@@ -575,10 +586,10 @@ async function doExport(state) {
 // ── ADMIN MODAL ──
 const ADMIN_PASS = "Noi029277577";
 const PRICE_GROUPS = [
-  { label:"Cabinet & ตู้", keys:["ODF 32F Wall","ODF 72F Wall","ODF 144F Wall","ODF 288F Wall","ODF 72F Ground","CONC BASE 72F","ODF 600F Cabinet","ODF 120F 4U Rack","ODF 24F 1U Rack","Install ODF 600F","CONC BASE 600F","Splitter 1:4","Splitter 1:8","Splitter 1:16","Panel 8S","Pole 1:8 L1","Pole 1:8 L2","Pole 1:16 L2","RISER POLE"] },
+  { label:"Cabinet & ตู้", keys:["ODF 32F Wall","ODF 72F Wall","ODF 144F Wall","ODF 288F Wall","ODF 72F Ground","CONC BASE 72F","ODF 600F Cabinet","ODF 120F 4U Rack","ODF 24F 1U Rack","Install ODF 600F","CONC BASE 600F","Splitter 1:4","Splitter 1:8","Splitter 1:16","Panel 8S","Patch Cord 1M","Patch Cord 1.5M","Patch Cord 3M","Pole 1:8 L1","Pole 1:8 L2","Pole 1:16 L2","RISER POLE"] },
   { label:"Fiber Cable", keys:["ADSS 24C","ADSS 48C","ADSS 120C","ADSS-M 12C","ADSS-D 12C","ADSS-D 24C","ADSS-D 48C","ADSS-D 120C","Duct 12C","Duct 24C","Duct 48C","Duct 120C"] },
   { label:"ODP + Splice", keys:["Duct BJ 12C","Duct BJ 24C","Duct BJ 48C","Duct BJ 120C","Splice 12F","Splice 24F","Splice 48F","Splice 120F"] },
-  { label:"Terminate", keys:["Term 1C","Term 2C","Term 3C","Term 4C","Term 6C","Term 12C","Term 24C","Term 48C","Term 120C"] },
+  { label:"Terminate", keys:["Term 1C","Term 2C","Term 3C","Term 4C","Term 5C","Term 6C","Term 7C","Term 8C","Term 9C","Term 10C","Term 11C","Term 12C","Term 24C","Term 48C","Term 120C"] },
   { label:"Civil Work", keys:['IMC 1"','uPVC 1"','HDPE 1"','HDPE 2"',"Duct in Sand","Road Cut","Break PB","PB 4x4 Galv","PB 6x6 Galv","PB 4x4 Plastic","PB 6x6 Plastic","PB 10x10 Galv","PB 12x12 Galv","HH-01 CONC"] },
   { label:"Last Mile", keys:["Flat 1C","Flat 2C","Armoured 1C","Armoured 2C","Round 1C","Round 2C","Duct Flat 1C","Duct Flat 2C","TB Outlet 1C","Splice@House","Splice Drop Wire","Break Sewer"] },
   { label:"Management", keys:["Survey","IGIS","Test & Report","Accessories Fee","Management Fee"] },
@@ -936,6 +947,13 @@ export default function App() {
             { key: "Splitter 1:16", label: "Splitter Modular 1:16" },
             { key: "Panel 8S", label: "Panel 8S with Adapter" },
           ]} values={splSels} setValues={setSplSels} />
+          <Collapsible label="Fiber Patch Cord">
+            <CheckGroup items={[
+              { key: "Patch Cord 1M", label: "Patch Cord SC/APC 1M" },
+              { key: "Patch Cord 1.5M", label: "Patch Cord SC/APC 1.5M" },
+              { key: "Patch Cord 3M", label: "Patch Cord SC/APC 3M" },
+            ]} values={splSels} setValues={setSplSels} />
+          </Collapsible>
         </Section>
 
         <Section num="2" title="Optical Fiber Cable" total={sub.s2} defaultOpen={true}>
@@ -953,11 +971,18 @@ export default function App() {
         </Section>
 
         <Section num="4" title="Terminate Service" total={sub.s4}>
+          <SubLabel>ที่ใช้บ่อย</SubLabel>
           <CheckGroup items={[
             {key:"Term 1C",label:"Terminate 1C"},{key:"Term 2C",label:"Terminate 2C"},{key:"Term 3C",label:"Terminate 3C"},
             {key:"Term 4C",label:"Terminate 4C"},{key:"Term 6C",label:"Terminate 6C"},{key:"Term 12C",label:"Terminate 12C"},
             {key:"Term 24C",label:"Terminate 24C"},{key:"Term 48C",label:"Terminate 48C"},{key:"Term 120C",label:"Terminate 120C"},
           ]} values={termSels} setValues={setTermSels} />
+          <Collapsible label="Core อื่นๆ (5,7,8,9,10,11C)">
+            <CheckGroup items={[
+              {key:"Term 5C",label:"Terminate 5C"},{key:"Term 7C",label:"Terminate 7C"},{key:"Term 8C",label:"Terminate 8C"},
+              {key:"Term 9C",label:"Terminate 9C"},{key:"Term 10C",label:"Terminate 10C"},{key:"Term 11C",label:"Terminate 11C"},
+            ]} values={termSels} setValues={setTermSels} />
+          </Collapsible>
         </Section>
 
         <Section num="5" title="Civil Work — ท่อ / ถนน / Pull Box" total={sub.s5}>

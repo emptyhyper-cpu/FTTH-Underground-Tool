@@ -30,6 +30,9 @@ const P = {
   "Duct 12C": 100, "Duct 24C": 150, "Duct 48C": 165, "Duct 120C": 180,
   "Duct BJ 12C": 4500, "Duct BJ 24C": 5300, "Duct BJ 48C": 6800, "Duct BJ 120C": 10800,
   "Splice 12F": 4300, "Splice 24F": 5600, "Splice 48F": 7000, "Splice 120F": 12500,
+  "ODP 8P": 3200, "ODP 16P": 3300,
+  "Aerial Cl 1:4 L1": 3500, "Aerial Cl 1:8 L1": 3700, "Aerial Cl 1:16 L1": 3800,
+  "Aerial Cl 1:4 L2": 3500, "Aerial Cl 1:8 L2": 3700, "Aerial Cl 1:16 L2": 3800,
   "Term 1C": 400, "Term 2C": 780, "Term 3C": 1170, "Term 4C": 1300, "Term 5C": 1430,
   "Term 6C": 1560, "Term 7C": 1690, "Term 8C": 1820, "Term 9C": 1950, "Term 10C": 2080, "Term 11C": 2210,
   "Term 12C": 4500, "Term 24C": 9000, "Term 48C": 17000, "Term 120C": 25000,
@@ -330,6 +333,11 @@ async function doImport(file, setters) {
   Object.entries(bjMap).forEach(([r, [bj, sp]]) => { if (q(r) > 0) { newBj[bj] = String(q(r)); newBj[sp] = String(q(parseInt(r)+4)); } });
   setters.setBjSels(newBj);
 
+  const newOdp = {};
+  const oMap = { 54:"ODP 8P",55:"ODP 16P",56:"Aerial Cl 1:4 L1",57:"Aerial Cl 1:8 L1",58:"Aerial Cl 1:16 L1",59:"Aerial Cl 1:4 L2",60:"Aerial Cl 1:8 L2",61:"Aerial Cl 1:16 L2" };
+  Object.entries(oMap).forEach(([r, k]) => { if (q(r) > 0) newOdp[k] = String(q(r)); });
+  setters.setOdpSels(newOdp);
+
   // Terminate
   const newTerm = {};
   const tMap = { 63:"Term 1C",64:"Term 2C",65:"Term 3C",66:"Term 4C",67:"Term 5C",68:"Term 6C",69:"Term 7C",70:"Term 8C",71:"Term 9C",72:"Term 10C",73:"Term 11C",74:"Term 12C",75:"Term 24C",76:"Term 48C",77:"Term 120C" };
@@ -412,6 +420,8 @@ async function doExport(state) {
   // ODP BJ + Splice
   const bR = { "Duct BJ 12C":46,"Duct BJ 24C":47,"Duct BJ 48C":48,"Duct BJ 120C":49,"Splice 12F":50,"Splice 24F":51,"Splice 48F":52,"Splice 120F":53 };
   Object.entries(state.bjSels).forEach(([k, q]) => { if (bR[k]) set(bR[k], nv(q)); });
+  const oR = { "ODP 8P":54,"ODP 16P":55,"Aerial Cl 1:4 L1":56,"Aerial Cl 1:8 L1":57,"Aerial Cl 1:16 L1":58,"Aerial Cl 1:4 L2":59,"Aerial Cl 1:8 L2":60,"Aerial Cl 1:16 L2":61 };
+  Object.entries(state.odpSels).forEach(([k, q]) => { if (oR[k]) set(oR[k], nv(q)); });
   // Terminate
   const tR = { "Term 1C":63,"Term 2C":64,"Term 3C":65,"Term 4C":66,"Term 5C":67,"Term 6C":68,"Term 7C":69,"Term 8C":70,"Term 9C":71,"Term 10C":72,"Term 11C":73,"Term 12C":74,"Term 24C":75,"Term 48C":76,"Term 120C":77 };
   Object.entries(state.termSels).forEach(([k, q]) => { if (tR[k]) set(tR[k], nv(q)); });
@@ -491,6 +501,14 @@ async function doExport(state) {
     51:"Fusion Splice Through 24F @ BJ Closure/Point",
     52:"Fusion Splice Through 48F @ BJ Closure/Point",
     53:"Fusion Splice Through 120F @ BJ Closure/Point",
+    54:"Optical Drop Point 8 ports Closure",
+    55:"Optcial Drop Point 16 ports Clousure",
+    56:"Aerial closure with splitter 1:4 Level 1",
+    57:"Aerial closure with splitter 1:8 Level 1",
+    58:"Aerial closure with splitter 1:16 Level 1",
+    59:"Aerial closure with splitter 1:4 Level 2",
+    60:"Aerial closure with splitter 1:8 Level 2",
+    61:"Aerial closure with splitter 1:16 Level 2 (Long Closure)",
     63:"Terminate service (Include Pigtail) 1C",
     64:"Terminate service (Include Pigtail) 2C",
     65:"Terminate service (Include Pigtail) 3C",
@@ -588,7 +606,7 @@ const ADMIN_PASS = "Noi029277577";
 const PRICE_GROUPS = [
   { label:"Cabinet & ตู้", keys:["ODF 32F Wall","ODF 72F Wall","ODF 144F Wall","ODF 288F Wall","ODF 72F Ground","CONC BASE 72F","ODF 600F Cabinet","ODF 120F 4U Rack","ODF 24F 1U Rack","Install ODF 600F","CONC BASE 600F","Splitter 1:4","Splitter 1:8","Splitter 1:16","Panel 8S","Patch Cord 1M","Patch Cord 1.5M","Patch Cord 3M","Pole 1:8 L1","Pole 1:8 L2","Pole 1:16 L2","RISER POLE"] },
   { label:"Fiber Cable", keys:["ADSS 24C","ADSS 48C","ADSS 120C","ADSS-M 12C","ADSS-D 12C","ADSS-D 24C","ADSS-D 48C","ADSS-D 120C","Duct 12C","Duct 24C","Duct 48C","Duct 120C"] },
-  { label:"ODP + Splice", keys:["Duct BJ 12C","Duct BJ 24C","Duct BJ 48C","Duct BJ 120C","Splice 12F","Splice 24F","Splice 48F","Splice 120F"] },
+  { label:"ODP + Splice", keys:["Duct BJ 12C","Duct BJ 24C","Duct BJ 48C","Duct BJ 120C","Splice 12F","Splice 24F","Splice 48F","Splice 120F","ODP 8P","ODP 16P","Aerial Cl 1:4 L1","Aerial Cl 1:8 L1","Aerial Cl 1:16 L1","Aerial Cl 1:4 L2","Aerial Cl 1:8 L2","Aerial Cl 1:16 L2"] },
   { label:"Terminate", keys:["Term 1C","Term 2C","Term 3C","Term 4C","Term 5C","Term 6C","Term 7C","Term 8C","Term 9C","Term 10C","Term 11C","Term 12C","Term 24C","Term 48C","Term 120C"] },
   { label:"Civil Work", keys:['IMC 1"','uPVC 1"','HDPE 1"','HDPE 2"',"Duct in Sand","Road Cut","Break PB","PB 4x4 Galv","PB 6x6 Galv","PB 4x4 Plastic","PB 6x6 Plastic","PB 10x10 Galv","PB 12x12 Galv","HH-01 CONC"] },
   { label:"Last Mile", keys:["Flat 1C","Flat 2C","Armoured 1C","Armoured 2C","Round 1C","Round 2C","Duct Flat 1C","Duct Flat 2C","TB Outlet 1C","Splice@House","Splice Drop Wire","Break Sewer"] },
@@ -677,6 +695,7 @@ export default function App() {
 
   // Sec 3
   const [bjSels, setBjSels] = useState({});
+  const [odpSels, setOdpSels] = useState({});
 
   // Sec 4
   const [termSels, setTermSels] = useState({});
@@ -723,7 +742,8 @@ export default function App() {
     const s1 = s1_wall + s1_ground + s1_600 + s1_pole + s1_spl;
 
     const s2 = Object.entries(fiberVals).reduce((s, [k, q]) => s + nv(q) * (P[k] || 0), 0);
-    const s3 = Object.entries(bjSels).reduce((s, [k, q]) => s + nv(q) * (P[k] || 0), 0);
+    const s3 = Object.entries(bjSels).reduce((s, [k, q]) => s + nv(q) * (P[k] || 0), 0)
+      + Object.entries(odpSels).reduce((s, [k, q]) => s + nv(q) * (P[k] || 0), 0);
     const s4 = Object.entries(termSels).reduce((s, [k, q]) => s + nv(q) * (P[k] || 0), 0);
     const s5 = Object.entries(civilVals).reduce((s, [k, q]) => s + nv(q) * (P[k] || 0), 0);
 
@@ -751,14 +771,14 @@ export default function App() {
 
     return { s1, s2, s3, s4, s5, s6, s7, mainSPT, oltCost, odnCost, oltOdn, lmPerHome, totalVillage, costPerSub, totalPoles, c6q, groundQ };
   }, [wallVals, groundVals, cab600qtys, poleSels, splSels,
-      fiberVals, bjSels, termSels, civilVals, lmSels,
+      fiberVals, bjSels, odpSels, termSels, civilVals, lmSels,
       tbQty, spliceHouseQty, spliceDrop, breakSewer,
       survey, igis, testReport, accQty, mgmtQty,
       oltPON, odnVal, onuPerHome, onuBoxPerHome, homes]);
 
   const importSetters = {
     setVillageName, setHomes, setWallVals, setGroundVals, setCab600qtys,
-    setPoleSels, setSplSels, setFiberVals, setBjSels, setTermSels, setCivilVals,
+    setPoleSels, setSplSels, setFiberVals, setBjSels, setOdpSels, setTermSels, setCivilVals,
     setLmSels, setTbQty, setSpliceHouseQty, setSpliceDrop, setBreakSewer,
     setSurvey, setIgis, setTestReport, setAccQty, setMgmtQty,
     setOnuPerHome, setOnuBoxPerHome, setPipeNotes,
@@ -768,7 +788,7 @@ export default function App() {
   const exportState = {
     villageName, homes, oltPON, odnVal, onuPerHome, onuBoxPerHome, pipeNotes, sub,
     wallVals, groundVals, cab600qtys, poleSels, splSels,
-    fiberVals, bjSels, termSels, civilVals, lmSels,
+    fiberVals, bjSels, odpSels, termSels, civilVals, lmSels,
     tbQty, spliceHouseQty, spliceDrop, breakSewer,
     survey, igis, testReport, accQty, mgmtQty,
   };
@@ -968,6 +988,25 @@ export default function App() {
         <Section num="3" title="ODP ในบ่อพัก (Duct BJ + Splice)" total={sub.s3}>
           <div style={{ fontSize: 12, color: C.textLight, marginBottom: 2, fontFamily: FONT }}>เลือก Core size — Duct BJ + Fusion Splice มาพร้อมกัน</div>
           <BjSpliceGroup bjSels={bjSels} setBjSels={setBjSels} />
+          <Collapsible label="ODP & Aerial Closure (ใช้ไม่บ่อย)">
+            <SubLabel>Optical Drop Point Closure</SubLabel>
+            <CheckGroup items={[
+              { key: "ODP 8P", label: "Optical Drop Point 8 ports Closure" },
+              { key: "ODP 16P", label: "Optical Drop Point 16 ports Closure" },
+            ]} values={odpSels} setValues={setOdpSels} />
+            <SubLabel>Aerial Closure with Splitter — Level 1</SubLabel>
+            <CheckGroup items={[
+              { key: "Aerial Cl 1:4 L1", label: "Aerial closure splitter 1:4 Level 1" },
+              { key: "Aerial Cl 1:8 L1", label: "Aerial closure splitter 1:8 Level 1" },
+              { key: "Aerial Cl 1:16 L1", label: "Aerial closure splitter 1:16 Level 1" },
+            ]} values={odpSels} setValues={setOdpSels} />
+            <SubLabel>Aerial Closure with Splitter — Level 2</SubLabel>
+            <CheckGroup items={[
+              { key: "Aerial Cl 1:4 L2", label: "Aerial closure splitter 1:4 Level 2" },
+              { key: "Aerial Cl 1:8 L2", label: "Aerial closure splitter 1:8 Level 2" },
+              { key: "Aerial Cl 1:16 L2", label: "Aerial closure splitter 1:16 Level 2 (Long)" },
+            ]} values={odpSels} setValues={setOdpSels} />
+          </Collapsible>
         </Section>
 
         <Section num="4" title="Terminate Service" total={sub.s4}>
